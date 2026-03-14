@@ -1,24 +1,24 @@
-// db.js — Database SQLite (flat, tidak di subfolder)
-
+// db.js — Database SQLite (Railway-compatible)
+ 
 const Database = require('better-sqlite3');
 const path     = require('path');
 const fs       = require('fs');
-
-// Railway: simpan di /app/data agar persist (atau /tmp untuk ephemeral)
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'pixelup.db');
+ 
+// Railway: gunakan /tmp agar tidak ada permission issue
+const DB_PATH = process.env.DB_PATH || '/tmp/pixelup.db';
 const dbDir   = path.dirname(DB_PATH);
-
+ 
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
-
-console.log('[DB] Menggunakan database:', DB_PATH);
-
+ 
+console.log('[DB] Path:', DB_PATH);
+ 
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 db.pragma('secure_delete = ON');
-
+ 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id              TEXT PRIMARY KEY,
@@ -38,7 +38,7 @@ db.exec(`
     updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
     last_login      TEXT
   );
-
+ 
   CREATE TABLE IF NOT EXISTS refresh_tokens (
     id          TEXT PRIMARY KEY,
     family_id   TEXT NOT NULL,
@@ -51,7 +51,7 @@ db.exec(`
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
-
+ 
   CREATE TABLE IF NOT EXISTS ip_blocks (
     ip          TEXT PRIMARY KEY,
     reason      TEXT NOT NULL,
@@ -59,7 +59,7 @@ db.exec(`
     expires_at  TEXT,
     permanent   INTEGER NOT NULL DEFAULT 0
   );
-
+ 
   CREATE TABLE IF NOT EXISTS auth_attempts (
     id          TEXT PRIMARY KEY,
     ip          TEXT NOT NULL,
@@ -68,7 +68,7 @@ db.exec(`
     user_agent  TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   );
-
+ 
   CREATE TABLE IF NOT EXISTS security_events (
     id          TEXT PRIMARY KEY,
     event_type  TEXT NOT NULL,
@@ -79,7 +79,7 @@ db.exec(`
     details     TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   );
-
+ 
   CREATE TABLE IF NOT EXISTS jobs (
     id            TEXT PRIMARY KEY,
     user_id       TEXT NOT NULL,
@@ -103,7 +103,7 @@ db.exec(`
     updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
-
+ 
   CREATE TABLE IF NOT EXISTS subscriptions (
     id             TEXT PRIMARY KEY,
     user_id        TEXT NOT NULL UNIQUE,
@@ -115,7 +115,7 @@ db.exec(`
     payment_method TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
-
+ 
   CREATE TABLE IF NOT EXISTS transactions (
     id             TEXT PRIMARY KEY,
     user_id        TEXT NOT NULL,
@@ -127,7 +127,7 @@ db.exec(`
     created_at     TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
-
+ 
   CREATE TABLE IF NOT EXISTS api_keys (
     id            TEXT PRIMARY KEY,
     user_id       TEXT NOT NULL,
@@ -141,7 +141,7 @@ db.exec(`
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
-
+ 
   CREATE TABLE IF NOT EXISTS audit_logs (
     id          TEXT PRIMARY KEY,
     admin_id    TEXT NOT NULL,
@@ -153,16 +153,17 @@ db.exec(`
     ip          TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   );
-
-  CREATE INDEX IF NOT EXISTS idx_users_email       ON users(email);
-  CREATE INDEX IF NOT EXISTS idx_rt_user           ON refresh_tokens(user_id);
-  CREATE INDEX IF NOT EXISTS idx_rt_hash           ON refresh_tokens(token_hash);
-  CREATE INDEX IF NOT EXISTS idx_ip_blocks         ON ip_blocks(ip);
-  CREATE INDEX IF NOT EXISTS idx_auth_ip           ON auth_attempts(ip, created_at);
-  CREATE INDEX IF NOT EXISTS idx_jobs_user         ON jobs(user_id);
-  CREATE INDEX IF NOT EXISTS idx_api_keys_user     ON api_keys(user_id);
-  CREATE INDEX IF NOT EXISTS idx_sec_events        ON security_events(event_type, created_at);
+ 
+  CREATE INDEX IF NOT EXISTS idx_users_email   ON users(email);
+  CREATE INDEX IF NOT EXISTS idx_rt_user       ON refresh_tokens(user_id);
+  CREATE INDEX IF NOT EXISTS idx_rt_hash       ON refresh_tokens(token_hash);
+  CREATE INDEX IF NOT EXISTS idx_ip_blocks     ON ip_blocks(ip);
+  CREATE INDEX IF NOT EXISTS idx_auth_ip       ON auth_attempts(ip, created_at);
+  CREATE INDEX IF NOT EXISTS idx_jobs_user     ON jobs(user_id);
+  CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
+  CREATE INDEX IF NOT EXISTS idx_sec_events    ON security_events(created_at);
 `);
-
+ 
 console.log('[DB] Schema siap.');
+module.exports = db;
 module.exports = db;
