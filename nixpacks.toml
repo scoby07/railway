@@ -1,0 +1,6 @@
+# Kosongkan — biarkan Railway pakai Node 22 default (sudah ada node:sqlite built-in)
+[phases.install]
+cmds = ["npm install --ignore-scripts"]
+
+[start]
+cmd = "node seed.js && node server.js"
